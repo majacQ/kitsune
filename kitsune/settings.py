@@ -70,12 +70,7 @@ DATABASES = {
 
 if DATABASES["default"]["ENGINE"] == "django.db.backends.mysql":
     DATABASES["default"]["CONN_MAX_AGE"] = DB_CONN_MAX_AGE
-    DATABASES["default"]["OPTIONS"] = {"init_command": "SET storage_engine=InnoDB"}
-    DATABASE_ROUTERS = ("multidb.PinningMasterSlaveRouter",)
-
-# Add read-only databases here. The database can be the same as the `default`
-# database but with a user with read permissions only.
-SLAVE_DATABASES = []
+    DATABASES["default"]["OPTIONS"] = {"init_command": "SET default_storage_engine=InnoDB"}
 
 # Cache Settings
 CACHES = {
@@ -501,7 +496,6 @@ MIDDLEWARE = (
     "kitsune.sumo.middleware.FilterByUserAgentMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "multidb.middleware.PinningRouterMiddleware",
     "commonware.request.middleware.SetRemoteAddrFromForwardedFor",
     "kitsune.sumo.middleware.EnforceHostIPMiddleware",
     # VaryNoCacheMiddleware must be above LocaleURLMiddleware
@@ -610,8 +604,8 @@ else:
         FXA_USERNAME_ALGO = config("FXA_USERNAME_ALGO", default=_username_algo)
         FXA_STORE_ACCESS_TOKEN = config("FXA_STORE_ACCESS_TOKEN", default=False, cast=bool)
         FXA_STORE_ID_TOKEN = config("FXA_STORE_ID_TOKEN", default=False, cast=bool)
-        FXA_SUPPORT_FORM = config(
-            "FXA_SUPPORT_FORM", default="https://accounts.firefox.com/support"
+        FXA_SUBSCRIPTIONS = config(
+            "FXA_SUBSCRIPTIONS", default="https://accounts.firefox.com/subscriptions"
         )
         FXA_SET_ISSUER = config("FXA_SET_ISSUER", default="https://accounts.firefox.com")
 
@@ -984,7 +978,6 @@ GA_ACCOUNT = config(
 GA_PROFILE_ID = config(
     "GA_PROFILE_ID", default="12345678"
 )  # Google Analytics profile id for SUMO prod
-GA_START_DATE = date(2012, 11, 10)
 GTM_CONTAINER_ID = config("GTM_CONTAINER_ID", default="")  # Google container ID
 
 REDIS_BACKENDS = {
@@ -1201,3 +1194,13 @@ if ES7_ENABLE_CONSOLE_LOGGING and DEV:
     es_trace_logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     es_trace_logger.addHandler(handler)
+
+# Zendesk Section
+ZENDESK_SUBDOMAIN = config("ZENDESK_SUBDOMAIN", default="")
+ZENDESK_API_TOKEN = config("ZENDESK_API_TOKEN", default="")
+ZENDESK_USER_EMAIL = config("ZENDESK_USER_EMAIL", default="")
+ZENDESK_TICKET_FORM_ID = config("ZENDESK_TICKET_FORM_ID", default="360000417171", cast=int)
+ZENDESK_PRODUCT_FIELD_ID = config("ZENDESK_PRODUCT_FIELD_ID", default="360047198211", cast=int)
+ZENDESK_CATEGORY_FIELD_ID = config("ZENDESK_CATEGORY_FIELD_ID", default="360047206172", cast=int)
+ZENDESK_OS_FIELD_ID = config("ZENDESK_OS_FIELD_ID", default="360018604871", cast=int)
+ZENDESK_COUNTRY_FIELD_ID = config("ZENDESK_COUNTRY_FIELD_ID", default="360026463511", cast=int)

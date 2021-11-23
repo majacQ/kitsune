@@ -25,11 +25,14 @@ from django.utils.translation import ugettext_lazy as _lazy
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_user_agents.utils import get_user_agent
+from sentry_sdk import capture_exception
 from taggit.models import Tag
 from tidings.events import ActivationRequestFailed
 from tidings.models import Watch
+from zenpy.lib.exception import APIException
 
 from kitsune.access.decorators import login_required, permission_required
+from kitsune.customercare.forms import ZendeskForm
 from kitsune.flagit.models import FlaggedObject
 from kitsune.products.models import Product, Topic
 from kitsune.questions import config
@@ -43,7 +46,7 @@ from kitsune.questions.forms import (
     WatchQuestionForm,
 )
 from kitsune.questions.models import Answer, AnswerVote, Question, QuestionLocale, QuestionVote
-from kitsune.questions.utils import get_mobile_product_from_ua
+from kitsune.questions.utils import get_mobile_product_from_ua, get_featured_articles
 from kitsune.sumo.decorators import ratelimit, ssl_required
 from kitsune.sumo.templatetags.jinja_helpers import urlparams
 from kitsune.sumo.urlresolvers import reverse, split_path
@@ -53,7 +56,6 @@ from kitsune.upload.models import ImageAttachment
 from kitsune.upload.views import upload_imageattachment
 from kitsune.users.models import Setting
 from kitsune.wiki.facets import topics_for
-from kitsune.wiki.utils import get_featured_articles
 
 log = logging.getLogger("k.questions")
 
@@ -224,6 +226,9 @@ def question_list(request, product_slug):
     # Exclude questions over 90 days old without an answer.
     oldest_date = date.today() - timedelta(days=90)
     question_qs = question_qs.exclude(created__lt=oldest_date, num_answers=0)
+
+    # Exclude questions updated over 1 year ago to avoid sorting the entire table.
+    question_qs = question_qs.filter(updated__gt=date.today() - timedelta(days=365))
 
     # Filter by products.
     if products:
@@ -462,25 +467,6 @@ def aaq(request, product_key=None, category_key=None, step=1):
 
     template = "questions/new_question.html"
 
-    # Check if any product forum has a locale in the user's current locale
-    if (
-        request.LANGUAGE_CODE not in QuestionLocale.objects.locales_list()
-        and request.LANGUAGE_CODE != settings.WIKI_DEFAULT_LANGUAGE
-    ):
-
-        locale, path = split_path(request.path)
-        path = "/" + settings.WIKI_DEFAULT_LANGUAGE + "/" + path
-
-        old_lang = settings.LANGUAGES_DICT[request.LANGUAGE_CODE.lower()]
-        new_lang = settings.LANGUAGES_DICT[settings.WIKI_DEFAULT_LANGUAGE.lower()]
-        msg = _(
-            "The questions forum isn't available in {old_lang}, we "
-            "have redirected you to the {new_lang} questions forum."
-        ).format(old_lang=old_lang, new_lang=new_lang)
-        messages.add_message(request, messages.WARNING, msg)
-
-        return HttpResponseRedirect(path)
-
     # Check if the user is using a mobile device,
     # render step 2 if they are
     product_key = product_key or request.GET.get("product")
@@ -511,21 +497,13 @@ def aaq(request, product_key=None, category_key=None, step=1):
             product = Product.objects.get(slug=product_config["product"])
         except Product.DoesNotExist:
             raise Http404
-        else:
-            # Check if the selected product has a forum in the user's locale
-            if not product.questions_locales.filter(locale=request.LANGUAGE_CODE).count():
-                locale, path = split_path(request.path)
-                path = "/" + settings.WIKI_DEFAULT_LANGUAGE + "/" + path
-
-                old_lang = settings.LANGUAGES_DICT[request.LANGUAGE_CODE.lower()]
-                new_lang = settings.LANGUAGES_DICT[settings.WIKI_DEFAULT_LANGUAGE.lower()]
-                msg = _(
-                    "The questions forum isn't available for {product} in {old_lang}, we "
-                    "have redirected you to the {new_lang} questions forum."
-                ).format(product=product.title, old_lang=old_lang, new_lang=new_lang)
-                messages.add_message(request, messages.WARNING, msg)
-
-                return HttpResponseRedirect(path)
+        has_public_forum = product.questions_enabled(locale=request.LANGUAGE_CODE)
+        has_subscriptions = product.has_subscriptions
+        request.session["aaq_context"] = {
+            "key": product_key,
+            "has_public_forum": has_public_forum,
+            "has_subscriptions": has_subscriptions,
+        }
 
     context = {
         "products": config.products,
@@ -534,10 +512,58 @@ def aaq(request, product_key=None, category_key=None, step=1):
         "host": Site.objects.get_current().domain,
     }
 
+    if step > 1:
+        context["has_subscriptions"] = has_subscriptions
+
     if step == 2:
         context["featured"] = get_featured_articles(product, locale=request.LANGUAGE_CODE)
         context["topics"] = topics_for(product, parent=None)
+
     elif step == 3:
+        # Check if the selected product has a forum in the user's locale
+        if not has_public_forum:
+            locale, path = split_path(request.path)
+            path = "/" + settings.WIKI_DEFAULT_LANGUAGE + "/" + path
+
+            old_lang = settings.LANGUAGES_DICT[request.LANGUAGE_CODE.lower()]
+            new_lang = settings.LANGUAGES_DICT[settings.WIKI_DEFAULT_LANGUAGE.lower()]
+            msg = _(
+                "The questions forum isn't available for {product} in {old_lang}, we "
+                "have redirected you to the {new_lang} questions forum."
+            ).format(product=product.title, old_lang=old_lang, new_lang=new_lang)
+            messages.add_message(request, messages.WARNING, msg)
+
+            return HttpResponseRedirect(path)
+
+        if has_subscriptions:
+            zendesk_form = ZendeskForm(data=request.POST or None, product=product)
+            context["form"] = zendesk_form
+
+            if zendesk_form.is_valid():
+                try:
+                    zendesk_form.send(request.user)
+
+                    messages.add_message(
+                        request,
+                        messages.SUCCESS,
+                        _(
+                            "Done! Your message was sent to Mozilla Support, "
+                            "thank you for reaching out. "
+                            "We'll contact you via email as soon as possible."
+                        ),
+                    )
+
+                    url = reverse("products.product", args=[product.slug])
+                    return HttpResponseRedirect(url)
+
+                except APIException as err:
+                    messages.add_message(
+                        request, messages.ERROR, _("That didn't work. Please try again.")
+                    )
+                    capture_exception(err)
+
+            return render(request, template, context)
+
         form = NewQuestionForm(
             product=product_config,
             data=request.POST or None,

@@ -36,6 +36,7 @@ k8s/regions/*/*-secrets.yaml
 *.sqlite3
 .bash_history
 .vscode-server
+.vscode/*.log
 .yarnrc
 .docker-build*
 postatus.txt
@@ -56,3 +57,4 @@ celerybeat.pid
 .python_history
 .ssh
 *.zip
+.mysql_history

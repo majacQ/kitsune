@@ -5,7 +5,6 @@ PIPELINE_JS = {
         "source_filenames": (
             "sumo/js/i18n.js",
             "underscore/underscore.js",
-            "moment/moment.js",
             "jquery/dist/jquery.min.js",
             "jquery/jquery-migrate.js",
             "sumo/js/libs/jquery.cookie.js",
@@ -93,6 +92,10 @@ PIPELINE_JS = {
     "questions.metrics": {
         "source_filenames": ("sumo/js/questions.metrics-dashboard.js",),
         "output_filename": "build/questions.metrics-min.js",
+    },
+    "questions.geo": {
+        "source_filenames": ("sumo/js/location.es6",),
+        "output_filename": "build/questions.geo-min.js",
     },
     "products": {
         "source_filenames": (
