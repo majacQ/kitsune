@@ -585,7 +585,7 @@ premailer==3.7.0 \
     --hash=sha256:5eec9603e84cee583a390de69c75192e50d76e38ef0292b027bd64923766aca7 \
     --hash=sha256:c7ac48986984a810afea5147bc8410a8fe0659bf52f357e78b28a1b949209b91
     # via -r requirements/default.in
-protobuf==3.17.1 \
+protobuf==3.18.3 \
     --hash=sha256:0f237c1e84e46747397a3e8173edb3116e81163b2878fc944a5193b05876eaee \
     --hash=sha256:1fcace96670b8512e805d6e275bd59b860967a7648e05cfad35ec1e7c03d7262 \
     --hash=sha256:25bc4f1c23aced9b3a9e70eef7f03e63bcbd6cfbd881a91b5688412dce8992e1 \
