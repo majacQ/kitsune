@@ -267,7 +267,7 @@ django-watchman==1.1.1 \
     --hash=sha256:63ed14c13a535ff53540dfea504448588274f96bbd872db67379609274cdf837 \
     --hash=sha256:809097717254534ef4fb251787b35dd4f00e3da68ae8b9361d340062ef966e5e
     # via -r requirements/default.in
-django==2.2.23 \
+django==3.2.15 \
     --hash=sha256:12cfc045a4ccb2348719aaaa77b17e66a26bff9fc238b4c765a3e825ef92e414 \
     --hash=sha256:2710bff9dd480cf886e38947ee00aea3d6b9b04b77a748e352e3ce447b0fe17f
     # via
@@ -784,7 +784,7 @@ six==1.16.0 \
     #   python-dateutil
     #   python-memcached
     #   translate-toolkit
-sqlparse==0.4.1 \
+sqlparse==0.4.2 \
     --hash=sha256:017cde379adbd6a1f15a61873f43e8274179378e95ef3fede90b5aa64d304ed0 \
     --hash=sha256:0f91fd2e829c44362cbcfab3e9ae12e22badaa8a29ad5ff599f9ec109f0454e8
     # via django
