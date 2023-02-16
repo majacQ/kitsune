@@ -125,7 +125,7 @@ commonware==0.6.0 \
     --hash=sha256:0e9520986e292f2bf8cdf80b32f21ef01e4058fd7baa61d2d282d21ed7085b1f \
     --hash=sha256:f596962fd11bc53b5453ffa766dc99f297895021946096d3e6b4826f9ae075ea
     # via -r requirements/default.in
-cryptography==3.4.7 \
+cryptography==39.0.1 \
     --hash=sha256:0f1212a66329c80d68aeeb39b8a16d54ef57071bf22ff4e521657b27372e327d \
     --hash=sha256:1e056c28420c072c5e3cb36e2b23ee55e260cb04eee08f702e0edfec3fb51959 \
     --hash=sha256:240f5c21aef0b73f40bb9f78d2caff73186700bf1bc6b94285699aff98cc16c6 \
@@ -842,7 +842,7 @@ webencodings==0.5.1 \
     # via
     #   bleach
     #   html5lib
-werkzeug==1.0.1 \
+werkzeug==2.2.3 \
     --hash=sha256:2de2a5db0baeae7b2d2664949077c2ac63fbd16d98da0ff71837f7d1dea3fd43 \
     --hash=sha256:6c80b1e5ad3665290ea39320b91e1be1e0d5f60652b964a3070216de83d2e47c
     # via -r requirements/default.in
